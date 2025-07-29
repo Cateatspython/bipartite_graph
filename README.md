@@ -34,7 +34,7 @@ cd bipartite_graph
 
 ```
 
-2. Lancer le fichier bipartite_graph.html sur un serveur local (par exemple en utilisant Live Server)
+2. Lancer le fichier `bipartite_graph.html` sur un serveur local (par exemple en utilisant Live Server)
 
 ### Réutiliser le code sur un autre projet de l'application AIKON 
 
@@ -59,6 +59,7 @@ Néanmoins, il est possible de tester cette visualisation avec un autre export p
 ```
 
 6. Ouvrir le fichier `bipartite_graph.html` sur un serveur local (par exemple en utilisant Live Server)
+
 
 
 Visualisation réalisée dans le cadre d'un stage de fin d'étude du master TNAH à l'Observatoire de Paris d'avril à août 2025.
