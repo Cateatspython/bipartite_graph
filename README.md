@@ -1,4 +1,4 @@
 # Bipartite graph - VHS
 
 ## 📷 Aperçu
-![aperçu de la visualisation](images/apercu.png)
+![Aperçu de la visualisation](images/aperçu.png)
