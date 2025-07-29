@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Visualisation de Mathieu avec un T</title>
+  <title>Visualisation de type bipartite graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body {
@@ -40,7 +40,7 @@
       margin-right: 15px;
       user-select: none;
     }
-    /* Nouveau style du bouton */
+
     #loadMore {
       padding: 10px 25px;
       font-size: 16px;
@@ -219,7 +219,6 @@
         .attr("fill", "#333")
         .text(d => d.id);
 
-      // === Modification ici pour entourer aussi les noeuds liés ===
       let linkedNodes = new Set();
       if (selectedNodeId !== null) {
         allLinks.forEach(link => {
