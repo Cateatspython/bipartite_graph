@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visualisation de Mathieu avec un T</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #container {
+      width: 100%;
+      overflow-x: auto;
+    }
+    svg {
+      width: 100%;
+      border: 1px solid #ccc;
+      background: #fafafa;
+    }
+    .node rect {
+      stroke-width: 1;
+    }
+    .link {
+      stroke: rgb(255, 0, 0);
+    }
+    text.score-text {
+      font-size: 12px;
+      fill: #333;
+      pointer-events: none;
+      user-select: none;
+    }
+    #filters {
+      margin: 10px;
+      text-align: center;
+    }
+    #filters label {
+      margin-right: 15px;
+      user-select: none;
+    }
+    /* Nouveau style du bouton */
+    #loadMore {
+      padding: 10px 25px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    #loadMore:hover {
+      background-color: #0056b3;
+    }
+    .column-label {
+      font-size: 16px;
+      font-weight: bold;
+      fill: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 style="text-align: center;">Visualisation</h2>
+
+  <div id="filters">
+    <label><input type="checkbox" id="toggle-score"> Afficher le score</label>
+  </div>
+
+  <div id="container">
+    <div id="graph-wrapper">
+      <svg></svg>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 15px 0;">
+    <button id="loadMore">Afficher plus</button>
+  </div>
+
+  <script>
+    const svg = d3.select("svg");
+    const g = svg.append("g");
+
+    const boxSize = 100;
+    const padding = 20;
+    const columnGap = 300;
+    const typeColors = { "1": "red", "2": "blue", "3": "green" };
+    const file = "nouveaufichier75.csv";
+    const imagePath = "regions/";
+
+    const chunkSize = 50;
+    let displayedNodeCount = 0;
+    let allNodes = [];
+    let allLinks = [];
+    let showScores = false;
+    let selectedNodeId = null;
+
+    d3.csv(file).then(data => {
+      const nodesMap = new Map();
+
+      data.forEach(d => {
+        d.similarity_type = String(d.similarity_type);
+        if (d.lien_interne === "False") {
+          d.id = `${d.img_1}-${d.img_2}`;
+          allLinks.push(d);
+
+          if (!nodesMap.has(d.img_1)) {
+            nodesMap.set(d.img_1, { id: d.img_1, column: 0 });
+          }
+          if (!nodesMap.has(d.img_2)) {
+            nodesMap.set(d.img_2, { id: d.img_2, column: 1 });
+          }
+        }
+      });
+
+      allNodes = Array.from(nodesMap.values()).map((node, i) => {
+        node.index = i;
+        return node;
+      });
+
+      loadMore();
+
+      d3.select("#toggle-score").on("change", function () {
+        showScores = this.checked;
+        resetAndRender();
+      });
+
+      d3.select("#loadMore").on("click", () => {
+        loadMore();
+        if (displayedNodeCount >= allNodes.length) {
+          d3.select("#loadMore").style("display", "none");
+        }
+      });
+    });
+
+    function resetAndRender() {
+      displayedNodeCount = chunkSize;
+      d3.select("#loadMore").style("display", "inline-block");
+      render(allNodes.slice(0, displayedNodeCount));
+    }
+
+    function loadMore() {
+      displayedNodeCount += chunkSize;
+      if (displayedNodeCount > allNodes.length) displayedNodeCount = allNodes.length;
+      render(allNodes.slice(0, displayedNodeCount));
+      if (displayedNodeCount >= allNodes.length) {
+        d3.select("#loadMore").style("display", "none");
+      }
+    }
+
+    function render(nodes) {
+      const numColumns = 2;
+      const contentWidth = (numColumns - 1) * columnGap + boxSize;
+      const svgWidth = parseInt(svg.style("width"));
+      const offsetX = (svgWidth - contentWidth) / 2;
+
+      const positions = {};
+      nodes.forEach((node, i) => {
+        const x = offsetX + node.column * columnGap;
+        const y = node.index * (boxSize + padding + 20) + padding + 40;
+        positions[node.id] = { x, y };
+      });
+
+      const maxIndex = d3.max(nodes, d => d.index);
+      const totalHeight = (maxIndex + 1) * (boxSize + padding + 20) + padding + 60;
+      svg.attr("height", totalHeight);
+
+      g.selectAll(".column-label").remove();
+      g.append("text")
+        .attr("class", "column-label")
+        .attr("x", offsetX + boxSize / 2)
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .text("Witness 75");
+
+      g.append("text")
+        .attr("class", "column-label")
+        .attr("x", offsetX + columnGap + boxSize / 2)
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .text("Witness 116");
+
+      const nodeGroup = g.selectAll(".node")
+        .data(nodes, d => d.id);
+
+      nodeGroup.exit().remove();
+
+      const nodeGroupEnter = nodeGroup.enter()
+        .append("g")
+        .attr("class", "node")
+        .style("cursor", "pointer")
+        .on("click", (event, d) => {
+          if (selectedNodeId === d.id) {
+            selectedNodeId = null;
+          } else {
+            selectedNodeId = d.id;
+          }
+          render(nodes);
+        });
+
+      nodeGroupEnter.append("rect")
+        .attr("width", boxSize)
+        .attr("height", boxSize)
+        .attr("fill", "#ddd")
+        .attr("stroke", "#999");
+
+      nodeGroupEnter.append("image")
+        .attr("width", boxSize)
+        .attr("height", boxSize)
+        .attr("href", d => imagePath + d.id);
+
+      nodeGroupEnter.append("text")
+        .attr("x", boxSize / 2)
+        .attr("y", boxSize + 12)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "12px")
+        .attr("fill", "#333")
+        .text(d => d.id);
+
+      // === Modification ici pour entourer aussi les noeuds liés ===
+      let linkedNodes = new Set();
+      if (selectedNodeId !== null) {
+        allLinks.forEach(link => {
+          if (link.img_1 === selectedNodeId) linkedNodes.add(link.img_2);
+          else if (link.img_2 === selectedNodeId) linkedNodes.add(link.img_1);
+        });
+      }
+
+      nodeGroup.merge(nodeGroupEnter)
+        .attr("transform", d => `translate(${positions[d.id].x},${positions[d.id].y})`)
+        .select("rect")
+        .attr("stroke", d => (selectedNodeId === d.id || linkedNodes.has(d.id)) ? "red" : "#999")
+        .attr("stroke-width", d => (selectedNodeId === d.id || linkedNodes.has(d.id)) ? 3 : 1)
+        .attr("fill", d => (selectedNodeId === d.id || linkedNodes.has(d.id)) ? "#fdd" : "#ddd");
+
+      const filteredLinks = allLinks.filter(d =>
+        d.img_1 in positions && d.img_2 in positions
+      );
+
+      const links = g.selectAll(".link")
+        .data(filteredLinks, d => d.id);
+
+      links.exit().remove();
+
+      const linksEnter = links.enter()
+        .append("line")
+        .attr("class", "link");
+
+      links.merge(linksEnter)
+        .attr("x1", d => positions[d.img_1].x + boxSize)
+        .attr("y1", d => positions[d.img_1].y + boxSize / 2)
+        .attr("x2", d => positions[d.img_2].x)
+        .attr("y2", d => positions[d.img_2].y + boxSize / 2)
+        .attr("stroke", d => {
+          if (selectedNodeId === null) return "#ccc";
+          return (d.img_1 === selectedNodeId || d.img_2 === selectedNodeId) ? "red" : "#ccc";
+        })
+        .attr("stroke-width", d => 1 + (parseFloat(d.score) / 100) * 5)
+        .attr("opacity", d => {
+          if (selectedNodeId === null) return 0.2;
+          return (d.img_1 === selectedNodeId || d.img_2 === selectedNodeId) ? 1 : 0.1;
+        });
+
+      g.selectAll(".score-text").remove();
+      if (showScores) {
+        g.selectAll(".score-text")
+          .data(filteredLinks)
+          .enter()
+          .append("text")
+          .attr("class", "score-text")
+          .attr("x", d => (positions[d.img_1].x + positions[d.img_2].x + boxSize) / 2)
+          .attr("y", d => (positions[d.img_1].y + positions[d.img_2].y) / 2 + boxSize / 2)
+          .attr("text-anchor", "middle")
+          .text(d => parseFloat(d.score).toFixed(1));
+      }
+    }
+  </script>
+</body>
+</html>
